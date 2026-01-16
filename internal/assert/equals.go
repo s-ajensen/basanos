@@ -8,23 +8,19 @@ import (
 )
 
 type Result struct {
-	Passed   bool
+	BaseResult
 	Expected string
 	Actual   string
 	Diff     string
 }
 
-func Equals(expected, actual string) *Result {
+func Equals(expected, actual string) AssertResult {
 	return &Result{
-		Passed:   expected == actual,
-		Expected: expected,
-		Actual:   actual,
-		Diff:     generateDiff(expected, actual),
+		BaseResult: BaseResult{Passed: expected == actual},
+		Expected:   expected,
+		Actual:     actual,
+		Diff:       generateDiff(expected, actual),
 	}
-}
-
-func (result *Result) IsPassed() bool {
-	return result.Passed
 }
 
 func (result *Result) Format() string {

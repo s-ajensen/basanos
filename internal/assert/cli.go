@@ -10,6 +10,14 @@ type AssertResult interface {
 	IsPassed() bool
 }
 
+type BaseResult struct {
+	Passed bool
+}
+
+func (b BaseResult) IsPassed() bool {
+	return b.Passed
+}
+
 type AssertFunc func(first, second string) AssertResult
 
 func RunCLI(args []string, stdin io.Reader, stdout io.Writer,

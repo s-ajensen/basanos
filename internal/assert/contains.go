@@ -3,21 +3,17 @@ package assert
 import "strings"
 
 type ContainsResult struct {
-	Passed   bool
+	BaseResult
 	Needle   string
 	Haystack string
 }
 
-func Contains(needle, haystack string) *ContainsResult {
+func Contains(needle, haystack string) AssertResult {
 	return &ContainsResult{
-		Passed:   strings.Contains(haystack, needle),
-		Needle:   needle,
-		Haystack: haystack,
+		BaseResult: BaseResult{Passed: strings.Contains(haystack, needle)},
+		Needle:     needle,
+		Haystack:   haystack,
 	}
-}
-
-func (result *ContainsResult) IsPassed() bool {
-	return result.Passed
 }
 
 func (result *ContainsResult) Format() string {

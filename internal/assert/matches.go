@@ -6,13 +6,13 @@ import (
 )
 
 type MatchesResult struct {
-	Passed  bool
+	BaseResult
 	Pattern string
 	Target  string
 	Error   string
 }
 
-func Matches(pattern, target string) *MatchesResult {
+func Matches(pattern, target string) AssertResult {
 	result := &MatchesResult{
 		Pattern: pattern,
 		Target:  target,
@@ -26,10 +26,6 @@ func Matches(pattern, target string) *MatchesResult {
 
 	result.Passed = regex.MatchString(target)
 	return result
-}
-
-func (result *MatchesResult) IsPassed() bool {
-	return result.Passed
 }
 
 func (result *MatchesResult) Format() string {

@@ -7,7 +7,7 @@ import (
 )
 
 type NumericResult struct {
-	Passed   bool
+	BaseResult
 	Left     string
 	Right    string
 	LeftVal  float64
@@ -47,24 +47,20 @@ func numericCompare(left, right, op string, compare func(l, r float64) bool) *Nu
 	return result
 }
 
-func GreaterThan(left, right string) *NumericResult {
+func GreaterThan(left, right string) AssertResult {
 	return numericCompare(left, right, ">", func(l, r float64) bool { return l > r })
 }
 
-func GreaterThanOrEqual(left, right string) *NumericResult {
+func GreaterThanOrEqual(left, right string) AssertResult {
 	return numericCompare(left, right, ">=", func(l, r float64) bool { return l >= r })
 }
 
-func LessThan(left, right string) *NumericResult {
+func LessThan(left, right string) AssertResult {
 	return numericCompare(left, right, "<", func(l, r float64) bool { return l < r })
 }
 
-func LessThanOrEqual(left, right string) *NumericResult {
+func LessThanOrEqual(left, right string) AssertResult {
 	return numericCompare(left, right, "<=", func(l, r float64) bool { return l <= r })
-}
-
-func (result *NumericResult) IsPassed() bool {
-	return result.Passed
 }
 
 func (result *NumericResult) Format() string {

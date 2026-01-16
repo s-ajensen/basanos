@@ -8,9 +8,5 @@ import (
 
 func main() {
 	os.Exit(assert.RunCLI(os.Args[1:], os.Stdin, os.Stdout,
-		assert.ResolveBothValues, wrapContains))
-}
-
-func wrapContains(first, second string) assert.AssertResult {
-	return assert.Contains(first, second)
+		assert.ResolveBothValues, assert.Contains))
 }

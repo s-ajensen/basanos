@@ -9,27 +9,28 @@ import (
 func TestMatches_PatternMatches_Pass(t *testing.T) {
 	result := Matches(`\d{3}`, "HTTP 200 OK")
 
-	assert.True(t, result.Passed)
+	assert.True(t, result.IsPassed())
 }
 
 func TestMatches_PatternNoMatch_Fail(t *testing.T) {
 	result := Matches(`\d{4}`, "HTTP 200 OK")
 
-	assert.False(t, result.Passed)
+	assert.False(t, result.IsPassed())
 }
 
 func TestMatches_InvalidRegex_Error(t *testing.T) {
 	result := Matches(`[invalid`, "text")
 
-	assert.False(t, result.Passed)
-	assert.NotEmpty(t, result.Error)
+	assert.False(t, result.IsPassed())
+	concrete := result.(*MatchesResult)
+	assert.NotEmpty(t, concrete.Error)
 }
 
 func TestMatches_Format(t *testing.T) {
 	result := &MatchesResult{
-		Passed:  false,
-		Pattern: `\d{4}`,
-		Target:  "HTTP 200 OK",
+		BaseResult: BaseResult{Passed: false},
+		Pattern:    `\d{4}`,
+		Target:     "HTTP 200 OK",
 	}
 
 	output := result.Format()

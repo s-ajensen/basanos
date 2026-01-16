@@ -11,27 +11,29 @@ import (
 func TestEquals_IdenticalStrings_Pass(t *testing.T) {
 	result := Equals("hello", "hello")
 
-	assert.True(t, result.Passed)
+	assert.True(t, result.IsPassed())
 }
 
 func TestEquals_DifferentStrings_Fail(t *testing.T) {
 	result := Equals("hello", "world")
 
-	assert.False(t, result.Passed)
-	assert.Equal(t, "hello", result.Expected)
-	assert.Equal(t, "world", result.Actual)
+	assert.False(t, result.IsPassed())
+	concrete := result.(*Result)
+	assert.Equal(t, "hello", concrete.Expected)
+	assert.Equal(t, "world", concrete.Actual)
 }
 
 func TestEquals_GeneratesDiff(t *testing.T) {
 	result := Equals("line1\nline2\nline3", "line1\nchanged\nline3")
 
-	assert.NotEmpty(t, result.Diff)
-	assert.Contains(t, result.Diff, "-line2")
-	assert.Contains(t, result.Diff, "+changed")
+	concrete := result.(*Result)
+	assert.NotEmpty(t, concrete.Diff)
+	assert.Contains(t, concrete.Diff, "-line2")
+	assert.Contains(t, concrete.Diff, "+changed")
 }
 
 func TestResult_Format_Pass(t *testing.T) {
-	result := Result{Passed: true}
+	result := Result{BaseResult: BaseResult{Passed: true}}
 
 	output := result.Format()
 
@@ -40,10 +42,10 @@ func TestResult_Format_Pass(t *testing.T) {
 
 func TestResult_Format_Fail(t *testing.T) {
 	result := Result{
-		Passed:   false,
-		Expected: "hello",
-		Actual:   "world",
-		Diff:     "-hello\n+world\n",
+		BaseResult: BaseResult{Passed: false},
+		Expected:   "hello",
+		Actual:     "world",
+		Diff:       "-hello\n+world\n",
 	}
 
 	output := result.Format()
@@ -59,11 +61,12 @@ func TestResult_Format_Fail(t *testing.T) {
 func TestEquals_DiffHasNoFileHeaders(t *testing.T) {
 	result := Equals("hello", "world")
 
-	assert.NotContains(t, result.Diff, "--- expected")
-	assert.NotContains(t, result.Diff, "+++ actual")
-	assert.Contains(t, result.Diff, "@@ ")
-	assert.Contains(t, result.Diff, "-hello")
-	assert.Contains(t, result.Diff, "+world")
+	concrete := result.(*Result)
+	assert.NotContains(t, concrete.Diff, "--- expected")
+	assert.NotContains(t, concrete.Diff, "+++ actual")
+	assert.Contains(t, concrete.Diff, "@@ ")
+	assert.Contains(t, concrete.Diff, "-hello")
+	assert.Contains(t, concrete.Diff, "+world")
 }
 
 func TestResolveValue_ReturnsLiteralWhenFileDoesNotExist(t *testing.T) {

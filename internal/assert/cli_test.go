@@ -9,11 +9,11 @@ import (
 )
 
 func passingAssert(a, b string) AssertResult {
-	return &Result{Passed: true, Expected: a, Actual: b}
+	return &Result{BaseResult: BaseResult{Passed: true}, Expected: a, Actual: b}
 }
 
 func failingAssert(a, b string) AssertResult {
-	return &Result{Passed: false, Expected: a, Actual: b}
+	return &Result{BaseResult: BaseResult{Passed: false}, Expected: a, Actual: b}
 }
 
 func protocolInput(expected, actual string) string {
@@ -59,7 +59,7 @@ func TestRunCLI_ArgsMode_UsesResolver(t *testing.T) {
 	trackingAssert := func(first, second string) AssertResult {
 		assertedFirst = first
 		assertedSecond = second
-		return &Result{Passed: true, Expected: first, Actual: second}
+		return &Result{BaseResult: BaseResult{Passed: true}, Expected: first, Actual: second}
 	}
 	stdout := &bytes.Buffer{}
 

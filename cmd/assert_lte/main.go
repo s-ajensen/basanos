@@ -8,9 +8,5 @@ import (
 
 func main() {
 	os.Exit(assert.RunCLI(os.Args[1:], os.Stdin, os.Stdout,
-		assert.ResolveLiterals, wrapLessThanOrEqual))
-}
-
-func wrapLessThanOrEqual(first, second string) assert.AssertResult {
-	return assert.LessThanOrEqual(first, second)
+		assert.ResolveLiterals, assert.LessThanOrEqual))
 }
