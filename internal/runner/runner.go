@@ -104,31 +104,31 @@ func (runner *Runner) runAssertions(path string, assertions []spec.Assertion, en
 	return allPassed
 }
 
-func (runner *Runner) runScenario(path string, scenario spec.Scenario, ctx runContext) bool {
-	scenarioOutput := ctx.outputRoot + "/" + path
+func (runner *Runner) runScenario(scenarioPath string, scenario spec.Scenario, ctx runContext) bool {
+	scenarioOutput := path.Join(ctx.outputRoot, scenarioPath)
 	scenarioEnv := mergeEnv(ctx.env, map[string]string{
 		"SCENARIO_OUTPUT": scenarioOutput,
 	})
 
-	runner.emit(eventpkg.NewScenarioEnterEvent(runner.runID, path, scenario.Name))
+	runner.emit(eventpkg.NewScenarioEnterEvent(runner.runID, scenarioPath, scenario.Name))
 
-	runner.runHooks(path, "before_each", ctx.beforeEachHooks, scenarioEnv)
+	runner.runHooks(scenarioPath, "before_each", ctx.beforeEachHooks, scenarioEnv)
 
-	runner.emit(eventpkg.NewScenarioRunStartEvent(runner.runID, path))
+	runner.emit(eventpkg.NewScenarioRunStartEvent(runner.runID, scenarioPath))
 	exitCode, timedOut := runner.exec(scenario.Run.Command, scenario.Run.Timeout, scenarioEnv)
 	if timedOut {
-		runner.emit(eventpkg.NewTimeoutEvent(runner.runID, path, "run", scenario.Run.Timeout))
+		runner.emit(eventpkg.NewTimeoutEvent(runner.runID, scenarioPath, "run", scenario.Run.Timeout))
 	}
-	runner.emit(eventpkg.NewScenarioRunEndEvent(runner.runID, path, exitCode))
+	runner.emit(eventpkg.NewScenarioRunEndEvent(runner.runID, scenarioPath, exitCode))
 
-	assertionsPassed := runner.runAssertions(path, scenario.Assertions, scenarioEnv)
+	assertionsPassed := runner.runAssertions(scenarioPath, scenario.Assertions, scenarioEnv)
 	passed := exitCode == 0 && assertionsPassed && !timedOut
 
 	status := "fail"
 	if passed {
 		status = "pass"
 	}
-	runner.emit(eventpkg.NewScenarioExitEvent(runner.runID, path, status))
+	runner.emit(eventpkg.NewScenarioExitEvent(runner.runID, scenarioPath, status))
 
 	if passed {
 		runner.passed++
@@ -136,7 +136,7 @@ func (runner *Runner) runScenario(path string, scenario spec.Scenario, ctx runCo
 		runner.failed++
 	}
 
-	runner.runHooks(path, "after_each", reversed(ctx.afterEachHooks), scenarioEnv)
+	runner.runHooks(scenarioPath, "after_each", reversed(ctx.afterEachHooks), scenarioEnv)
 
 	return passed
 }
@@ -214,16 +214,16 @@ func (runner *Runner) runChildScenarios(path string, scenario spec.Scenario, ctx
 	runner.runScenarios(path, scenario.Scenarios, childCtx)
 }
 
-func (runner *Runner) runTree(specTree *tree.SpecTree, specRoot string, outputRoot string) error {
+func (runner *Runner) runTree(specTree *tree.SpecTree, specRoot string, outputRoot string, parentEnv map[string]string) error {
 	if runner.aborted {
 		return nil
 	}
 
 	contextOutput := outputRoot + "/" + specTree.Path
-	env := mergeEnv(specTree.Context.Env, map[string]string{
+	env := mergeEnv(parentEnv, mergeEnv(specTree.Context.Env, map[string]string{
 		"SPEC_ROOT":      specRoot,
 		"CONTEXT_OUTPUT": contextOutput,
-	})
+	}))
 
 	runner.emit(eventpkg.NewContextEnterEvent(runner.runID, specTree.Path, specTree.Context.Name))
 
@@ -243,7 +243,7 @@ func (runner *Runner) runTree(specTree *tree.SpecTree, specRoot string, outputRo
 	runner.runHook(specTree.Path, "after", specTree.Context.After, env)
 
 	for _, child := range specTree.Children {
-		runner.runTree(child, ctx.specRoot, ctx.outputRoot)
+		runner.runTree(child, ctx.specRoot, ctx.outputRoot, env)
 	}
 
 	runner.emit(eventpkg.NewContextExitEvent(runner.runID, specTree.Path))
@@ -252,7 +252,7 @@ func (runner *Runner) runTree(specTree *tree.SpecTree, specRoot string, outputRo
 }
 
 func (runner *Runner) Run(specTree *tree.SpecTree) error {
-	return runner.runTree(specTree, specTree.Path, "")
+	return runner.runTree(specTree, specTree.Path, "", nil)
 }
 
 func (runner *Runner) RunWithID(runID string, specTree *tree.SpecTree) error {
@@ -263,7 +263,7 @@ func (runner *Runner) RunWithID(runID string, specTree *tree.SpecTree) error {
 	runner.aborted = false
 
 	outputRoot := "runs/" + runID
-	err := runner.runTree(specTree, specTree.Path, outputRoot)
+	err := runner.runTree(specTree, specTree.Path, outputRoot, nil)
 
 	status := "pass"
 	if runner.failed > 0 {

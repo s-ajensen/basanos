@@ -862,3 +862,55 @@ func TestRunner_FilterByGlobPattern(t *testing.T) {
 	assert.Equal(t, "api_login_cmd", fakeExecutor.Commands[0].Command)
 	assert.Equal(t, "api_logout_cmd", fakeExecutor.Commands[1].Command)
 }
+
+func TestRunner_ScenarioOutputNoDoubleSlash(t *testing.T) {
+	specTree := &tree.SpecTree{
+		Path: "/tmp/test",
+		Context: &spec.Context{
+			Name: "test",
+			Scenarios: []spec.Scenario{
+				{
+					ID:   "scenario",
+					Name: "Test scenario",
+					Run:  &spec.RunBlock{Command: "test_cmd", Timeout: "5s"},
+				},
+			},
+		},
+	}
+
+	executor, _ := runSpecWithID(t, "run-1", specTree)
+
+	require.Len(t, executor.Commands, 1)
+	scenarioOutput := executor.Commands[0].Env["SCENARIO_OUTPUT"]
+	assert.NotContains(t, scenarioOutput, "//")
+}
+
+func TestRunner_ChildContext_InheritsParentEnv(t *testing.T) {
+	specTree := &tree.SpecTree{
+		Path: "parent",
+		Context: &spec.Context{
+			Name: "parent",
+			Env:  map[string]string{"MY_VAR": "from_parent"},
+		},
+		Children: []*tree.SpecTree{
+			{
+				Path: "parent/child",
+				Context: &spec.Context{
+					Name: "child",
+					Scenarios: []spec.Scenario{
+						{
+							ID:   "scenario",
+							Name: "Child scenario",
+							Run:  &spec.RunBlock{Command: "echo ${MY_VAR}", Timeout: "5s"},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	executor, _ := runSpec(t, specTree)
+
+	require.Len(t, executor.Commands, 1)
+	assert.Equal(t, "echo from_parent", executor.Commands[0].Command)
+}

@@ -1,8 +1,0 @@
-name: "Product API"
-
-scenarios:
-  - id: search
-    name: "Search products"
-    run:
-      command: echo "GET /products?q=widget -> [...]"
-      timeout: "5s"

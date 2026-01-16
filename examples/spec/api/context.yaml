@@ -1,0 +1,22 @@
+name: "API Tests"
+
+env:
+  API_PORT: "8080"
+
+before:
+  run: echo "Starting API server on :${API_PORT}"
+  timeout: 5s
+
+after:
+  run: echo "Stopping API server"
+  timeout: 5s
+
+scenarios:
+  - id: health
+    name: "Health check returns 200"
+    run:
+      command: printf "200"
+      timeout: 5s
+    assertions:
+      - command: ${ASSERT}/assert_equals "200" ${SCENARIO_OUTPUT}/_run/stdout
+        timeout: 1s

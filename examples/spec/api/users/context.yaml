@@ -1,0 +1,28 @@
+name: "User API"
+
+before_each:
+  run: echo "Resetting test users"
+  timeout: 2s
+
+scenarios:
+  - id: list
+    name: "List users returns JSON array"
+    run:
+      command: echo '[{"id":1,"name":"alice"},{"id":2,"name":"bob"}]'
+      timeout: 5s
+    assertions:
+      - command: ${ASSERT}/assert_contains "alice" ${SCENARIO_OUTPUT}/_run/stdout
+        timeout: 1s
+      - command: ${ASSERT}/assert_contains "bob" ${SCENARIO_OUTPUT}/_run/stdout
+        timeout: 1s
+
+  - id: create
+    name: "Create user returns 201"
+    run:
+      command: echo "201 Created"
+      timeout: 5s
+    assertions:
+      - command: ${ASSERT}/assert_equals ${SPEC_ROOT}/api/users/expected_create.fixture ${SCENARIO_OUTPUT}/_run/stdout
+        timeout: 1s
+      - command: ${ASSERT}/assert_equals 0 ${SCENARIO_OUTPUT}/_run/exit_code
+        timeout: 1s

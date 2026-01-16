@@ -36,13 +36,20 @@ scenarios:
       command: curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/health
       timeout: 5s
     assertions:
-      - command: assert_equals 200 ${SCENARIO_OUTPUT}/stdout
+      - command: assert_equals 200 ${SCENARIO_OUTPUT}/_run/stdout
 ```
 
 Run the specs:
 
 ```bash
-basanos
+basanos -s spec
+```
+
+Or try the included examples:
+
+```bash
+make build
+basanos -s examples/spec
 ```
 
 ## Spec Structure
@@ -107,8 +114,8 @@ scenarios:
       timeout: 30s
     
     assertions:
-      - command: assert_equals expected.fixture ${SCENARIO_OUTPUT}/stdout
-      - command: assert_equals 0 ${SCENARIO_OUTPUT}/exit_code
+      - command: assert_equals expected.fixture ${SCENARIO_OUTPUT}/_run/stdout
+      - command: assert_equals 0 ${SCENARIO_OUTPUT}/_run/exit_code
     
     after:
       run: ./cleanup-test-data.sh
@@ -129,7 +136,7 @@ scenarios:
           command: echo "nested"
           timeout: 5s
         assertions:
-          - command: assert_contains "nested" ${SCENARIO_OUTPUT}/stdout
+          - command: assert_contains "nested" ${SCENARIO_OUTPUT}/_run/stdout
 ```
 
 ### Lifecycle Hooks

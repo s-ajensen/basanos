@@ -1,10 +1,13 @@
 name: "E-Commerce Platform"
 description: "Full test suite"
 
+env:
+  ASSERT: "./bin"
+
 before:
   run: echo "Starting test database"
-  timeout: "5s"
+  timeout: 5s
 
 after:
   run: echo "Stopping test database"
-  timeout: "5s"
+  timeout: 5s

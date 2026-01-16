@@ -1,0 +1,32 @@
+name: "UI Tests"
+
+before:
+  run: echo "Launching headless browser"
+  timeout: 10s
+
+after:
+  run: echo "Closing browser"
+  timeout: 5s
+
+scenarios:
+  - id: homepage
+    name: "Homepage loads successfully"
+    run:
+      command: printf "status:200\ntitle:Welcome to Our Store"
+      timeout: 10s
+    assertions:
+      - command: ${ASSERT}/assert_contains "status:200" ${SCENARIO_OUTPUT}/_run/stdout
+        timeout: 1s
+      - command: ${ASSERT}/assert_contains "Welcome" ${SCENARIO_OUTPUT}/_run/stdout
+        timeout: 1s
+
+  - id: checkout
+    name: "Checkout flow completes"
+    run:
+      command: printf "step:cart\nstep:checkout\nstep:payment\nstatus:complete"
+      timeout: 30s
+    assertions:
+      - command: ${ASSERT}/assert_contains "status:complete" ${SCENARIO_OUTPUT}/_run/stdout
+        timeout: 1s
+      - command: ${ASSERT}/assert_equals 0 ${SCENARIO_OUTPUT}/_run/exit_code
+        timeout: 1s
