@@ -46,7 +46,7 @@ scenarios:
       command: curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/health
       timeout: 5s
     assertions:
-      - command: assert_equals 200 ${RUN_OUTPUT}/stdout
+      - command: assert_equals "200" ${RUN_OUTPUT}/stdout
 ```
 
 Run the specs:
@@ -55,12 +55,19 @@ Run the specs:
 basanos -s spec
 ```
 
-Or try the included examples:
+## Self-Test Suite
+
+Basanos tests itself. Run the acceptance specs for the framework:
 
 ```bash
-make build
-basanos -s examples/spec
+# Run the full test suite
+basanos -s spec
+
+# With verbose output
+basanos -s spec --verbose
 ```
+
+This builds the binaries, runs 90+ scenarios covering CLI, assertions, runner lifecycle, output sinks, and validation.
 
 ## Spec Structure
 
@@ -154,7 +161,7 @@ scenarios:
 | Hook | Applies To | When It Runs |
 |------|------------|--------------|
 | `before` | Contexts, groups, leaves | Once when entering this node |
-| `after` | Contexts, groups, leaves | Once when exiting this node |
+| `after` | Contexts, groups, leaves | Once when exiting this node (after all children) |
 | `before_each` | Contexts, groups only | Before each descendant leaf |
 | `after_each` | Contexts, groups only | After each descendant leaf |
 
@@ -162,14 +169,14 @@ scenarios:
 
 For a leaf scenario, hooks execute in this order:
 
-1. Ancestor `before` hooks (root to leaf)
+1. Ancestor `before` hooks (root to leaf, once per context on entry)
 2. Ancestor `before_each` hooks (root to leaf)
 3. Scenario `before` hook
 4. Scenario `run` command
 5. Scenario `assertions`
 6. Scenario `after` hook
 7. Ancestor `after_each` hooks (leaf to root)
-8. Ancestor `after` hooks (leaf to root)
+8. Ancestor `after` hooks run when exiting each context (after all children complete)
 
 ### Variables
 
@@ -184,32 +191,48 @@ For a leaf scenario, hooks execute in this order:
 ## CLI Usage
 
 ```bash
-# Run all specs (default output: files)
-basanos
-
-# Specify spec directory
-basanos -s ./my-specs
+# Run specs (default output: cli)
+basanos -s ./spec
 
 # Output formats
-basanos -o files              # Write to runs/ directory (default)
-basanos -o files:./output     # Write to custom directory
+basanos -o cli                # Pretty terminal output (default)
 basanos -o json               # NDJSON to stdout
+basanos -o files              # Write to runs/ directory
+basanos -o files:./output     # Write to custom directory
 basanos -o junit              # JUnit XML to stdout
 
 # Multiple outputs
-basanos -o files -o json
-basanos -o files -o junit     # Files for debugging, JUnit for CI
+basanos -o cli -o files
+basanos -o json -o junit
 
 # Filter by path pattern
 basanos -f "api/*"
-basanos -f "api/users/login"
+basanos -f "*/*/*/login"
 
-# Help
+# Verbose mode (show context/scenario names)
+basanos --verbose
+
+# Help and version
 basanos -h
 basanos -v
 ```
 
 ## Output
+
+### CLI Reporter
+
+The default `cli` output shows pass/fail indicators with a summary:
+
+```
+My Application
+  Health check
+    [32m✓[0m Returns 200 for valid request
+    [31m✗[0m Handles missing auth header
+
+2 passed, 1 failed
+```
+
+Use `--verbose` to see full context and scenario names with indentation.
 
 ### File Sink
 
@@ -226,15 +249,34 @@ runs/
       users/
         login/
           _before_each/
-            api/
-              stdout, stderr, exit_code
+            stdout
+            stderr
+            exit_code
+          _before/
+            stdout
+            stderr
+            exit_code
           _run/
-            stdout, stderr, exit_code
+            stdout
+            stderr
+            exit_code
           _assertions/
-            0_assert_equals/
-              stdout, stderr, exit_code
-        _after/
-          stdout, stderr, exit_code
+            0/
+              stdout
+              stderr
+              exit_code
+            1/
+              stdout
+              stderr
+              exit_code
+          _after/
+            stdout
+            stderr
+            exit_code
+      _after/
+        stdout
+        stderr
+        exit_code
 ```
 
 ### JSON Stream Sink
@@ -243,49 +285,31 @@ The `json` sink emits NDJSON events to stdout:
 
 ```json
 {"event":"run_start","run_id":"2026-01-15_143022","timestamp":"..."}
-{"event":"context_enter","run_id":"...","path":"api","name":"API Tests"}
-{"event":"scenario_enter","run_id":"...","path":"api/login","name":"Login works"}
-{"event":"hook_start","run_id":"...","path":"api/login","hook":"run"}
+{"event":"context_enter","run_id":"...","path":"api","name":"API Tests","timestamp":"..."}
+{"event":"scenario_enter","run_id":"...","path":"api/login","name":"Login works","timestamp":"..."}
+{"event":"hook_start","run_id":"...","path":"api/login","hook":"_before_each"}
 {"event":"output","run_id":"...","stream":"stdout","data":"..."}
-{"event":"hook_end","run_id":"...","path":"api/login","hook":"run","exit_code":0}
+{"event":"hook_end","run_id":"...","path":"api/login","hook":"_before_each","exit_code":0}
+{"event":"run_start","run_id":"...","path":"api/login"}
+{"event":"output","run_id":"...","stream":"stdout","data":"..."}
+{"event":"run_end","run_id":"...","path":"api/login","exit_code":0}
 {"event":"assertion_start","run_id":"...","path":"api/login","index":0,"command":"assert_equals ..."}
 {"event":"assertion_end","run_id":"...","path":"api/login","index":0,"exit_code":0}
-{"event":"scenario_exit","run_id":"...","path":"api/login","status":"pass"}
-{"event":"context_exit","run_id":"...","path":"api"}
-{"event":"run_end","run_id":"...","status":"pass","passed":5,"failed":0}
+{"event":"scenario_exit","run_id":"...","path":"api/login","status":"pass","timestamp":"..."}
+{"event":"context_exit","run_id":"...","path":"api","timestamp":"..."}
+{"event":"run_end","run_id":"...","status":"pass","passed":5,"failed":0,"timestamp":"..."}
 ```
 
 ### JUnit Sink
 
-The `junit` sink outputs JUnit XML format for CI integration:
-
-```xml
-<?xml version="1.0" encoding="UTF-8"?>
-<testsuites tests="7" failures="0">
-  <testsuite name="api" tests="3" failures="0">
-    <testcase name="Health check" classname="api" time="0.100"/>
-    <testcase name="Login" classname="api" time="0.250">
-      <failure message="test failed"/>
-    </testcase>
-  </testsuite>
-</testsuites>
-```
-
-### Event Schema
-
-Generate the JSON Schema for event types:
-
-```bash
-make schema
-# Output: schema/events.json
-```
+The `junit` sink outputs JUnit XML format for CI integration.
 
 ## Assertion Executables
 
-Standalone binaries for use in specs:
+Standalone binaries for use in specs. All assertions auto-detect whether arguments are file paths or literal values.
 
 ```bash
-# Equality
+# Equality (both args can be files or literals)
 assert_equals expected.txt actual.txt
 assert_equals "expected string" actual.txt
 
@@ -293,14 +317,15 @@ assert_equals "expected string" actual.txt
 assert_contains needle.txt haystack.txt
 assert_contains "search term" haystack.txt
 
-# Pattern matching
+# Pattern matching (regex)
+assert_matches pattern.txt target.txt
 assert_matches "regex.*pattern" target.txt
 
-# Numeric comparisons
-assert_gt 10 5      # 10 > 5
-assert_gte 10 10    # 10 >= 10
-assert_lt 5 10      # 5 < 10
-assert_lte 10 10    # 10 <= 10
+# Numeric comparisons (both args can be files or literals)
+assert_gt value.txt threshold.txt    # value > threshold
+assert_gte 10 10                     # 10 >= 10
+assert_lt count.txt max.txt          # count < max
+assert_lte 5 10                      # 5 <= 10
 ```
 
 Each assertion:
@@ -380,11 +405,11 @@ Most AI-enabled editors can load agents and skills from your project:
 # Build all binaries
 make build
 
-# Run tests
+# Run unit tests
 make test
 
-# Generate event schema
-make schema
+# Run acceptance tests (basanos testing itself)
+basanos -s spec
 
 # Install to system (default: /usr/local/bin)
 make install

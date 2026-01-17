@@ -345,3 +345,126 @@ run:
   command: ./database-migration.sh
   timeout: 60s
 ```
+
+## Common Pitfalls
+
+Hard-won lessons from real spec debugging.
+
+### Use `printf`, not `echo -n`
+
+Shell portability matters. `echo -n` behaves differently across shells (bash, zsh, dash, sh). Some treat `-n` as a literal string.
+
+```yaml
+# BAD - may output "-n hello" on some systems
+before:
+  run: echo -n "hello" > ${TEST_TMP}/file
+
+# GOOD - portable across all shells
+before:
+  run: printf '%s' "hello" > ${TEST_TMP}/file
+```
+
+### Output variables are logical paths, not real directories
+
+`${CONTEXT_OUTPUT}`, `${SCENARIO_OUTPUT}`, and `${RUN_OUTPUT}` are logical paths that sinks use. Shell commands cannot write to them directly—they may not exist as real directories unless the `files` sink creates them.
+
+```yaml
+# BAD - directory may not exist
+before:
+  run: echo "data" > ${CONTEXT_OUTPUT}/myfile.txt
+
+# GOOD - use a real temp directory
+env:
+  TEST_TMP: "/tmp/mytest"
+before:
+  run: |
+    mkdir -p ${TEST_TMP}
+    echo "data" > ${TEST_TMP}/myfile.txt
+```
+
+For assertions, `${RUN_OUTPUT}/stdout` works because basanos resolves it from captured output, not the filesystem.
+
+### Glob patterns: `*` matches one segment only
+
+Go's `path.Match` uses shell-like globbing where `*` matches a single path segment, not multiple.
+
+```yaml
+# BAD - won't match "spec/fixtures/api/login"
+-f "*/login"
+
+# GOOD - matches exactly 3 segments before "login"
+-f "*/*/*/login"
+```
+
+### File sink paths include the spec root
+
+When running `basanos -s spec/fixtures/foo`, output paths include the full spec path:
+
+```
+runs/2026-01-17_120000/spec/fixtures/foo/scenario/_run/stdout
+```
+
+Not just:
+```
+runs/2026-01-17_120000/foo/scenario/_run/stdout
+```
+
+### Build artifacts belong in temp directories
+
+Don't pollute the project root. Build to a temp directory and clean up:
+
+```yaml
+env:
+  BIN_DIR: "/tmp/myproject_bin"
+
+before:
+  run: |
+    mkdir -p ${BIN_DIR}
+    go build -o ${BIN_DIR}/myapp .
+  timeout: 60s
+
+after:
+  run: rm -rf ${BIN_DIR}
+  timeout: 5s
+```
+
+### Define shared env vars at the root
+
+Binaries, temp directories, and other shared resources should be defined once at the root context and inherited by children:
+
+```yaml
+# spec/context.yaml (root)
+env:
+  BIN_DIR: "/tmp/myproject_bin"
+  MY_APP: "/tmp/myproject_bin/myapp"
+  TEST_TMP: "/tmp/myproject_test"
+```
+
+Children inherit these automatically—don't redefine them.
+
+### Prefer `${RUN_OUTPUT}` over `${SCENARIO_OUTPUT}/_run`
+
+Use the shorthand:
+
+```yaml
+# GOOD
+assertions:
+  - command: assert_equals expected.fixture ${RUN_OUTPUT}/stdout
+  - command: assert_equals 0 ${RUN_OUTPUT}/exit_code
+
+# VERBOSE (but equivalent)
+assertions:
+  - command: assert_equals expected.fixture ${SCENARIO_OUTPUT}/_run/stdout
+```
+
+### Regex patterns: use `[\s\S]*` for multi-line matching
+
+Standard `.` in regex doesn't match newlines. When matching across lines, use `[\s\S]*`:
+
+```yaml
+# BAD - won't match across newlines
+- command: assert_matches "START.*END" ${RUN_OUTPUT}/stdout
+
+# GOOD - matches any character including newlines
+- command: assert_matches "START[\s\S]*END" ${RUN_OUTPUT}/stdout
+```
