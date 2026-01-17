@@ -207,3 +207,26 @@ type FooEvent struct {
 	assert.Contains(t, required, "id")
 	assert.NotContains(t, required, "name")
 }
+
+func TestExtractFields_EmbeddedStructFlattensFields(t *testing.T) {
+	source := `package event
+
+type BaseEvent struct {
+	Event string ` + "`json:\"event\"`" + `
+	RunID string ` + "`json:\"run_id\"`" + `
+}
+
+type FooEvent struct {
+	BaseEvent
+	Name string ` + "`json:\"name\"`" + `
+}`
+
+	result := ExtractFields(source, "FooEvent")
+
+	expected := []FieldInfo{
+		{Name: "event", Type: "string", Required: true},
+		{Name: "run_id", Type: "string", Required: true},
+		{Name: "name", Type: "string", Required: true},
+	}
+	assert.Equal(t, expected, result)
+}

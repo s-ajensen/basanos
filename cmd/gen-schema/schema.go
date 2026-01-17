@@ -72,15 +72,21 @@ func extractFieldsFromAST(file *ast.File, typeName string) []FieldInfo {
 			if !ok {
 				continue
 			}
-			return extractFieldsFromStruct(structType)
+			return extractFieldsFromStruct(file, structType)
 		}
 	}
 	return nil
 }
 
-func extractFieldsFromStruct(structType *ast.StructType) []FieldInfo {
+func extractFieldsFromStruct(file *ast.File, structType *ast.StructType) []FieldInfo {
 	var fields []FieldInfo
 	for _, field := range structType.Fields.List {
+		if len(field.Names) == 0 {
+			embeddedTypeName := field.Type.(*ast.Ident).Name
+			embeddedFields := extractFieldsFromAST(file, embeddedTypeName)
+			fields = append(fields, embeddedFields...)
+			continue
+		}
 		tagName, required := parseJsonTag(field.Tag)
 		fields = append(fields, FieldInfo{
 			Name:     fieldName(tagName, field.Names[0].Name),

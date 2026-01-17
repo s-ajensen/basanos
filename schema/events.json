@@ -54,6 +54,21 @@
       ],
       "type": "object"
     },
+    "BaseEvent": {
+      "additionalProperties": false,
+      "properties": {
+        "event": {
+          "type": "string"
+        },
+        "run_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "event"
+      ],
+      "type": "object"
+    },
     "ContextEnterEvent": {
       "additionalProperties": false,
       "properties": {
@@ -207,7 +222,6 @@
       },
       "required": [
         "event",
-        "run_id",
         "status",
         "passed",
         "failed",
@@ -230,7 +244,6 @@
       },
       "required": [
         "event",
-        "run_id",
         "timestamp"
       ],
       "type": "object"
@@ -361,6 +374,9 @@
   },
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "oneOf": [
+    {
+      "$ref": "#/$defs/BaseEvent"
+    },
     {
       "$ref": "#/$defs/RunStartEvent"
     },
