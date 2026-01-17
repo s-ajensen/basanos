@@ -1,5 +1,8 @@
 # Basanos
 
+[![CI](https://github.com/s-ajensen/basanos/actions/workflows/ci.yml/badge.svg)](https://github.com/s-ajensen/basanos/actions/workflows/ci.yml)
+[![Go Report Card](https://goreportcard.com/badge/github.com/s-ajensen/basanos)](https://goreportcard.com/report/github.com/s-ajensen/basanos)
+
 > **basanos** (βάσανος) — *noun, Ancient Greek*
 >
 > A touchstone; a dark stone used to test the purity of gold or silver by the streak left on it when rubbed with the metal.
