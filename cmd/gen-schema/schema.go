@@ -39,6 +39,9 @@ func findEventTypesFromAST(file *ast.File) []string {
 }
 
 func isEventTypeName(name string) bool {
+	if name == "BaseEvent" {
+		return false
+	}
 	return strings.HasSuffix(name, "Event")
 }
 

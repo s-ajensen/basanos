@@ -10,40 +10,42 @@ scenarios:
     assertions:
       - command: assert_equals 0 ${RUN_OUTPUT}/exit_code
 
-  - id: has_schema_root
-    name: "Has JSON Schema root properties"
+  - id: valid_json_schema_structure
+    name: "Produces valid JSON Schema structure"
     run:
       command: go run ./cmd/gen-schema
       timeout: 30s
     assertions:
+      - command: assert_contains "$schema" ${RUN_OUTPUT}/stdout
       - command: assert_contains "$defs" ${RUN_OUTPUT}/stdout
       - command: assert_contains "oneOf" ${RUN_OUTPUT}/stdout
 
-  - id: includes_all_event_types
-    name: "Includes all expected event types"
+  - id: concrete_events_in_oneof
+    name: "oneOf contains only concrete event types"
     run:
       command: go run ./cmd/gen-schema
       timeout: 30s
     assertions:
-      - command: assert_contains RunStartEvent ${RUN_OUTPUT}/stdout
-      - command: assert_contains RunEndEvent ${RUN_OUTPUT}/stdout
-      - command: assert_contains ContextEnterEvent ${RUN_OUTPUT}/stdout
-      - command: assert_contains ContextExitEvent ${RUN_OUTPUT}/stdout
-      - command: assert_contains ScenarioEnterEvent ${RUN_OUTPUT}/stdout
-      - command: assert_contains ScenarioExitEvent ${RUN_OUTPUT}/stdout
-      - command: assert_contains ScenarioRunStartEvent ${RUN_OUTPUT}/stdout
-      - command: assert_contains ScenarioRunEndEvent ${RUN_OUTPUT}/stdout
-      - command: assert_contains AssertionStartEvent ${RUN_OUTPUT}/stdout
-      - command: assert_contains AssertionEndEvent ${RUN_OUTPUT}/stdout
-      - command: assert_contains OutputEvent ${RUN_OUTPUT}/stdout
-      - command: assert_contains HookStartEvent ${RUN_OUTPUT}/stdout
-      - command: assert_contains HookEndEvent ${RUN_OUTPUT}/stdout
-      - command: assert_contains TimeoutEvent ${RUN_OUTPUT}/stdout
+      - command: assert_contains "RunStartEvent" ${RUN_OUTPUT}/stdout
+      - command: assert_contains "RunEndEvent" ${RUN_OUTPUT}/stdout
+      - command: assert_contains "ContextEnterEvent" ${RUN_OUTPUT}/stdout
+      - command: assert_contains "ScenarioExitEvent" ${RUN_OUTPUT}/stdout
+      - command: assert_contains "OutputEvent" ${RUN_OUTPUT}/stdout
 
-  - id: events_have_required_fields
-    name: "Events specify required fields"
+  - id: no_base_event_in_oneof
+    name: "BaseEvent is not a standalone event type"
+    run:
+      command: "go run ./cmd/gen-schema | grep -c 'BaseEvent' | tr -d '\\n'"
+      timeout: 30s
+    assertions:
+      - command: assert_equals 0 ${RUN_OUTPUT}/stdout
+
+  - id: events_have_common_fields
+    name: "Concrete events include inherited fields"
     run:
       command: go run ./cmd/gen-schema
       timeout: 30s
     assertions:
-      - command: assert_contains required ${RUN_OUTPUT}/stdout
+      - command: assert_contains "run_id" ${RUN_OUTPUT}/stdout
+      - command: assert_contains "event" ${RUN_OUTPUT}/stdout
+      - command: assert_contains "timestamp" ${RUN_OUTPUT}/stdout

@@ -55,6 +55,24 @@ type BarEvent struct {
 	assert.Equal(t, []string{"FooEvent", "BarEvent"}, result)
 }
 
+func TestFindEventTypes_ExcludesBaseEvent(t *testing.T) {
+	source := `package event
+
+type BaseEvent struct {
+	Event string
+	RunID string
+}
+
+type FooEvent struct {
+	BaseEvent
+	Name string
+}`
+
+	result := FindEventTypes(source)
+
+	assert.Equal(t, []string{"FooEvent"}, result)
+}
+
 func TestExtractFields_StringAndIntTypes(t *testing.T) {
 	source := `package event
 
