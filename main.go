@@ -35,8 +35,12 @@ func main() {
 		Stdout:     os.Stdout,
 	}
 
-	if err := cmd.Run(opts); err != nil {
-		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+	result := cmd.Run(opts)
+	if result.Error != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", result.Error)
+		os.Exit(1)
+	}
+	if !result.Success {
 		os.Exit(1)
 	}
 }

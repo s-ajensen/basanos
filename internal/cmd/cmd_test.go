@@ -144,9 +144,9 @@ func TestRun_ReturnsNil(t *testing.T) {
 		Executor:   nil,
 	}
 
-	err := Run(opts)
+	result := Run(opts)
 
-	assert.NoError(t, err)
+	assert.NoError(t, result.Error)
 }
 
 func TestRun_ExecutesSpec(t *testing.T) {
@@ -168,9 +168,9 @@ scenarios:
 		Executor:   fakeExec,
 	}
 
-	err := Run(opts)
+	result := Run(opts)
 
-	require.NoError(t, err)
+	require.NoError(t, result.Error)
 	require.Len(t, fakeExec.Commands, 1)
 	assert.Equal(t, "echo hello", fakeExec.Commands[0].Command)
 }
@@ -195,9 +195,9 @@ scenarios:
 		Stdout:     &buf,
 	}
 
-	err := Run(opts)
+	result := Run(opts)
 
-	require.NoError(t, err)
+	require.NoError(t, result.Error)
 	assert.Contains(t, buf.String(), "run_start")
 }
 
@@ -221,9 +221,9 @@ scenarios:
 		OutputFS:   outputFS,
 	}
 
-	err := Run(opts)
+	result := Run(opts)
 
-	require.NoError(t, err)
+	require.NoError(t, result.Error)
 	files := outputFS.AllFiles()
 	require.NotEmpty(t, files, "FileSink should have written output files")
 
@@ -257,9 +257,9 @@ scenarios:
 		Stdout:     &buf,
 	}
 
-	err := Run(opts)
+	result := Run(opts)
 
-	require.NoError(t, err)
+	require.NoError(t, result.Error)
 	assert.Contains(t, buf.String(), "<testsuites")
 }
 
@@ -283,9 +283,9 @@ scenarios:
 		Stdout:     &buf,
 	}
 
-	err := Run(opts)
+	result := Run(opts)
 
-	require.NoError(t, err)
+	require.NoError(t, result.Error)
 	assert.Contains(t, buf.String(), ".")
 	assert.Contains(t, buf.String(), "passed")
 }
@@ -314,9 +314,9 @@ scenarios:
 		Executor:   fakeExec,
 	}
 
-	err := Run(opts)
+	result := Run(opts)
 
-	require.NoError(t, err)
+	require.NoError(t, result.Error)
 	require.Len(t, fakeExec.Commands, 1, "Filter should limit execution to one scenario")
 	assert.Equal(t, "echo first", fakeExec.Commands[0].Command)
 }
@@ -341,8 +341,37 @@ scenarios:
 		Stdout:     &buf,
 	}
 
-	err := Run(opts)
+	result := Run(opts)
 
-	require.NoError(t, err)
+	require.NoError(t, result.Error)
 	assert.Contains(t, buf.String(), "Verbose Context")
+}
+
+func TestRun_ReturnsFailureWhenTestFails(t *testing.T) {
+	memFS := memfs.NewMemoryFS()
+	memFS.AddDir("spec")
+	memFS.AddFile("spec/context.yaml", []byte(`name: "Test"
+scenarios:
+  - id: test
+    name: "Test scenario"
+    run:
+      command: "echo hello"
+      timeout: "10s"
+    assertions:
+      - command: "assert_equals expected actual"
+        timeout: "1s"
+`))
+
+	fakeExec := &fakeexec.FakeExecutor{
+		ExitCodes: map[string]int{"assert_equals": 1},
+	}
+	opts := RunOptions{
+		Config:     &Config{SpecDir: "spec", Outputs: []string{"files"}},
+		FileSystem: memFS,
+		Executor:   fakeExec,
+	}
+
+	result := Run(opts)
+
+	assert.False(t, result.Success)
 }

@@ -88,8 +88,7 @@ func (sink *JunitSink) handleScenarioEnter(enter *event.ScenarioEnterEvent) {
 
 func (sink *JunitSink) handleScenarioExit(exit *event.ScenarioExitEvent) {
 	pending := sink.pendingCases[exit.Path]
-	contextPath := filepath.Dir(exit.Path)
-	suite := sink.suites[contextPath]
+	suite := sink.findSuiteForPath(exit.Path)
 
 	duration := exit.Timestamp.Sub(pending.startTime).Seconds()
 	testCase := junitTestCase{
@@ -106,6 +105,17 @@ func (sink *JunitSink) handleScenarioExit(exit *event.ScenarioExitEvent) {
 	suite.Tests++
 
 	delete(sink.pendingCases, exit.Path)
+}
+
+func (sink *JunitSink) findSuiteForPath(scenarioPath string) *junitTestSuite {
+	path := scenarioPath
+	for path != "." && path != "" {
+		path = filepath.Dir(path)
+		if suite, exists := sink.suites[path]; exists {
+			return suite
+		}
+	}
+	return nil
 }
 
 func (sink *JunitSink) handleRunEnd(end *event.RunEndEvent) error {

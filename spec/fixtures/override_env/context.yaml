@@ -1,16 +1,27 @@
 name: "Override Test"
-description: "Fixture for testing child env overrides parent"
+description: "Fixture for testing nested context overrides parent env"
 
 env:
   VAR: "parent"
 
 scenarios:
-  - id: child
-    name: "Child"
-    env:
-      VAR: "child"
+  - id: uses_parent
+    name: "Uses parent env"
     run:
-      command: echo "${VAR}"
+      command: echo "VAR=${VAR}"
       timeout: 5s
     assertions:
-      - command: assert_contains "child" ${RUN_OUTPUT}/stdout
+      - command: assert_contains "VAR=parent" ${RUN_OUTPUT}/stdout
+
+  - id: child_group
+    name: "Child overrides VAR"
+    env:
+      VAR: "child"
+    scenarios:
+      - id: uses_child
+        name: "Uses child env"
+        run:
+          command: echo "VAR=${VAR}"
+          timeout: 5s
+        assertions:
+          - command: assert_contains "VAR=child" ${RUN_OUTPUT}/stdout

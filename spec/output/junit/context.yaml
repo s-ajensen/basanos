@@ -1,0 +1,97 @@
+name: "JUnit XML Sink"
+description: "Tests for -o junit output format"
+
+scenarios:
+  - id: valid_xml
+    name: "Produces valid XML"
+    run:
+      command: ${BASANOS_BIN} -s ${SPEC_ROOT}/fixtures/minimal -o junit 2>&1
+      timeout: 30s
+    assertions:
+      - command: assert_contains '<?xml version="1.0" encoding="UTF-8"?>' ${RUN_OUTPUT}/stdout
+      - command: assert_equals 0 ${RUN_OUTPUT}/exit_code
+
+  - id: testsuites_root
+    name: "Has testsuites root element with counts"
+    run:
+      command: ${BASANOS_BIN} -s ${SPEC_ROOT}/fixtures/minimal -o junit 2>&1
+      timeout: 30s
+    assertions:
+      - command: assert_contains '<testsuites tests="1" failures="0">' ${RUN_OUTPUT}/stdout
+      - command: assert_equals 0 ${RUN_OUTPUT}/exit_code
+
+  - id: testsuite_per_context
+    name: "Creates testsuite element for context"
+    run:
+      command: ${BASANOS_BIN} -s ${SPEC_ROOT}/fixtures/minimal -o junit 2>&1
+      timeout: 30s
+    assertions:
+      - command: assert_contains '<testsuite name=' ${RUN_OUTPUT}/stdout
+      - command: assert_equals 0 ${RUN_OUTPUT}/exit_code
+
+  - id: testcase_per_scenario
+    name: "Creates testcase element for scenario"
+    run:
+      command: ${BASANOS_BIN} -s ${SPEC_ROOT}/fixtures/minimal -o junit 2>&1
+      timeout: 30s
+    assertions:
+      - command: assert_contains '<testcase name=' ${RUN_OUTPUT}/stdout
+      - command: assert_contains 'classname=' ${RUN_OUTPUT}/stdout
+      - command: assert_equals 0 ${RUN_OUTPUT}/exit_code
+
+  - id: failure_element
+    name: "Includes failure element for failed tests"
+    run:
+      command: ${BASANOS_BIN} -s ${SPEC_ROOT}/fixtures/failing -o junit 2>&1 || true
+      timeout: 30s
+    assertions:
+      - command: assert_contains '<failure' ${RUN_OUTPUT}/stdout
+      - command: assert_contains 'failures="2"' ${RUN_OUTPUT}/stdout
+
+  - id: multiple_scenarios
+    name: "Handles multiple scenarios"
+    run:
+      command: ${BASANOS_BIN} -s ${SPEC_ROOT}/fixtures/multi_scenario -o junit 2>&1
+      timeout: 30s
+    assertions:
+      - command: assert_contains 'tests="2"' ${RUN_OUTPUT}/stdout
+      - command: assert_equals 0 ${RUN_OUTPUT}/exit_code
+
+  - id: nested_groups
+    name: "Handles scenarios nested in groups"
+    run:
+      command: ${BASANOS_BIN} -s ${SPEC_ROOT}/fixtures/nested_groups -o junit 2>&1
+      timeout: 30s
+    assertions:
+      - command: assert_contains 'tests="4"' ${RUN_OUTPUT}/stdout
+      - command: assert_contains 'failures="0"' ${RUN_OUTPUT}/stdout
+      - command: assert_contains 'Top level leaf' ${RUN_OUTPUT}/stdout
+      - command: assert_contains 'Nested in group' ${RUN_OUTPUT}/stdout
+      - command: assert_contains 'Three levels deep' ${RUN_OUTPUT}/stdout
+      - command: assert_equals 0 ${RUN_OUTPUT}/exit_code
+
+  - id: nested_contexts
+    name: "Handles nested context directories"
+    run:
+      command: ${BASANOS_BIN} -s ${SPEC_ROOT}/fixtures/nested_spec -o junit 2>&1
+      timeout: 30s
+    assertions:
+      - command: assert_contains '<testsuite' ${RUN_OUTPUT}/stdout
+      - command: assert_equals 0 ${RUN_OUTPUT}/exit_code
+
+  - id: exit_code_on_failure
+    name: "Exits non-zero when tests fail"
+    run:
+      command: ${BASANOS_BIN} -s ${SPEC_ROOT}/fixtures/failing -o junit 2>&1; echo "exit:$?"
+      timeout: 30s
+    assertions:
+      - command: assert_contains 'exit:1' ${RUN_OUTPUT}/stdout
+
+  - id: time_attribute
+    name: "Includes time attribute on testcase"
+    run:
+      command: ${BASANOS_BIN} -s ${SPEC_ROOT}/fixtures/minimal -o junit 2>&1
+      timeout: 30s
+    assertions:
+      - command: assert_matches 'time="[0-9]+\.[0-9]+"' ${RUN_OUTPUT}/stdout
+      - command: assert_equals 0 ${RUN_OUTPUT}/exit_code

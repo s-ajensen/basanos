@@ -1,0 +1,44 @@
+name: "Nested Scenario Groups"
+description: "Fixture with scenarios nested in group scenarios"
+
+scenarios:
+  - id: top_level_leaf
+    name: "Top level leaf"
+    run:
+      command: echo "top"
+      timeout: 5s
+    assertions:
+      - command: assert_equals 0 ${RUN_OUTPUT}/exit_code
+
+  - id: group_one
+    name: "Group One"
+    scenarios:
+      - id: nested_leaf
+        name: "Nested in group"
+        run:
+          command: echo "nested"
+          timeout: 5s
+        assertions:
+          - command: assert_equals 0 ${RUN_OUTPUT}/exit_code
+
+      - id: another_nested
+        name: "Another nested"
+        run:
+          command: echo "another"
+          timeout: 5s
+        assertions:
+          - command: assert_equals 0 ${RUN_OUTPUT}/exit_code
+
+  - id: group_two
+    name: "Group Two"
+    scenarios:
+      - id: deeply_nested_group
+        name: "Deeply nested group"
+        scenarios:
+          - id: deep_leaf
+            name: "Three levels deep"
+            run:
+              command: echo "deep"
+              timeout: 5s
+            assertions:
+              - command: assert_equals 0 ${RUN_OUTPUT}/exit_code

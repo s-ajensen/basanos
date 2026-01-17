@@ -52,6 +52,14 @@ func NewRunner(exec executor.Executor, sinks ...sinkpkg.Sink) *Runner {
 	}
 }
 
+func (runner *Runner) Passed() int {
+	return runner.passed
+}
+
+func (runner *Runner) Failed() int {
+	return runner.failed
+}
+
 func (runner *Runner) emit(event any) {
 	for _, sink := range runner.sinks {
 		sink.Emit(event)

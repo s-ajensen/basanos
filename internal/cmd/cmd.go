@@ -42,13 +42,20 @@ type RunOptions struct {
 	OutputFS   sink.WritableFS
 }
 
-func Run(opts RunOptions) error {
+type RunResult struct {
+	Success bool
+	Passed  int
+	Failed  int
+	Error   error
+}
+
+func Run(opts RunOptions) RunResult {
 	if opts.FileSystem == nil {
-		return nil
+		return RunResult{Success: true}
 	}
 	specTree, err := tree.LoadSpecTree(opts.FileSystem, opts.Config.SpecDir)
 	if err != nil {
-		return err
+		return RunResult{Error: err}
 	}
 	runID := time.Now().Format("2006-01-02_150405")
 	var sinks []sink.Sink
@@ -57,7 +64,13 @@ func Run(opts RunOptions) error {
 	}
 	specRunner := runner.NewRunner(opts.Executor, sinks...)
 	specRunner.Filter = opts.Config.Filter
-	return specRunner.RunWithID(runID, specTree)
+	err = specRunner.RunWithID(runID, specTree)
+	return RunResult{
+		Success: specRunner.Failed() == 0 && err == nil,
+		Passed:  specRunner.Passed(),
+		Failed:  specRunner.Failed(),
+		Error:   err,
+	}
 }
 
 var writerSinks = map[string]func(io.Writer) sink.Sink{
