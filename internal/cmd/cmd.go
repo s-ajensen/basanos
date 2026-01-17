@@ -51,29 +51,49 @@ func Run(opts RunOptions) error {
 	runID := time.Now().Format("2006-01-02_150405")
 	var sinks []sink.Sink
 	for _, output := range opts.Config.Outputs {
-		if strings.HasPrefix(output, "json") {
-			sinks = append(sinks, sink.NewJsonStreamSink(opts.Stdout))
-		}
-		if strings.HasPrefix(output, "files") {
-			path := "runs"
-			if _, after, found := strings.Cut(output, ":"); found {
-				path = after
-			}
-			var writableFS sink.WritableFS
-			if opts.OutputFS != nil {
-				writableFS = opts.OutputFS
-			} else {
-				writableFS = fs.NewOSWritableFS(path)
-			}
-			sinks = append(sinks, sink.NewFileSink(writableFS, runID))
-		}
-		if strings.HasPrefix(output, "junit") {
-			sinks = append(sinks, sink.NewJunitSink(opts.Stdout))
-		}
+		sinks = append(sinks, createSink(output, opts, runID))
 	}
 	r := runner.NewRunner(opts.Executor, sinks...)
 	r.Filter = opts.Config.Filter
 	return r.RunWithID(runID, specTree)
+}
+
+var writerSinks = map[string]func(io.Writer) sink.Sink{
+	"json":  sink.NewJsonStreamSink,
+	"junit": sink.NewJunitSink,
+	"cli":   sink.NewCLISink,
+}
+
+func createSink(output string, opts RunOptions, runID string) sink.Sink {
+	for prefix, factory := range writerSinks {
+		if strings.HasPrefix(output, prefix) {
+			return factory(opts.Stdout)
+		}
+	}
+	if strings.HasPrefix(output, "files") {
+		return createFileSink(output, opts, runID)
+	}
+	return nil
+}
+
+func createFileSink(output string, opts RunOptions, runID string) sink.Sink {
+	path := extractFilesPath(output)
+	writableFS := resolveWritableFS(opts.OutputFS, path)
+	return sink.NewFileSink(writableFS, runID)
+}
+
+func extractFilesPath(output string) string {
+	if _, after, found := strings.Cut(output, ":"); found {
+		return after
+	}
+	return "runs"
+}
+
+func resolveWritableFS(outputFS sink.WritableFS, path string) sink.WritableFS {
+	if outputFS != nil {
+		return outputFS
+	}
+	return fs.NewOSWritableFS(path)
 }
 
 func ParseArgs(args []string) (*Config, error) {
@@ -94,7 +114,7 @@ func ParseArgs(args []string) (*Config, error) {
 	fs.Parse(args)
 
 	if len(outputs) == 0 {
-		config.Outputs = []string{"files"}
+		config.Outputs = []string{"cli"}
 	} else {
 		config.Outputs = outputs
 	}

@@ -48,7 +48,7 @@ type JunitSink struct {
 	pendingCases map[string]*pendingCase
 }
 
-func NewJunitSink(writer io.Writer) *JunitSink {
+func NewJunitSink(writer io.Writer) Sink {
 	return &JunitSink{
 		writer:       writer,
 		suites:       make(map[string]*junitTestSuite),

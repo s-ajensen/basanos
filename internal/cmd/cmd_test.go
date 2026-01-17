@@ -17,7 +17,7 @@ func TestParseArgs_DefaultValues(t *testing.T) {
 
 	require.NoError(t, err)
 	assert.Equal(t, "spec", config.SpecDir)
-	assert.Equal(t, []string{"files"}, config.Outputs)
+	assert.Equal(t, []string{"cli"}, config.Outputs)
 	assert.Equal(t, "", config.Filter)
 	assert.False(t, config.ShowHelp)
 	assert.False(t, config.ShowVersion)
@@ -248,6 +248,33 @@ scenarios:
 
 	require.NoError(t, err)
 	assert.Contains(t, buf.String(), "<testsuites")
+}
+
+func TestRun_UsesCLISink(t *testing.T) {
+	memFS := memfs.NewMemoryFS()
+	memFS.AddDir("spec")
+	memFS.AddFile("spec/context.yaml", []byte(`name: "Test"
+scenarios:
+  - id: test
+    name: "Test scenario"
+    run:
+      command: "echo hello"
+      timeout: "10s"
+`))
+
+	var buf bytes.Buffer
+	opts := RunOptions{
+		Config:     &Config{SpecDir: "spec", Outputs: []string{"cli"}},
+		FileSystem: memFS,
+		Executor:   &fakeexec.FakeExecutor{},
+		Stdout:     &buf,
+	}
+
+	err := Run(opts)
+
+	require.NoError(t, err)
+	assert.Contains(t, buf.String(), ".")
+	assert.Contains(t, buf.String(), "passed")
 }
 
 func TestRun_UsesFilter(t *testing.T) {

@@ -10,7 +10,7 @@ type JsonStreamSink struct {
 	writer io.Writer
 }
 
-func NewJsonStreamSink(w io.Writer) *JsonStreamSink {
+func NewJsonStreamSink(w io.Writer) Sink {
 	return &JsonStreamSink{writer: w}
 }
 

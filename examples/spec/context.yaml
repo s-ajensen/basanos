@@ -10,4 +10,4 @@ before:
 
 after:
   run: echo "Stopping test database"
-  timeout: 5
+  timeout: 5s
