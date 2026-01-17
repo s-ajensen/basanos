@@ -2,6 +2,8 @@
 bin/
 runs/
 custom_output/
+/basanos
+/assert_*
 
 # Agent instructions (local only)
 AGENTS.md
