@@ -14,10 +14,20 @@ An acceptance test framework for agentic orchestration. Specs are YAML. Executio
 # From source
 git clone https://github.com/yourname/basanos
 cd basanos
-make build
+make install
 
-# Binaries are in ./bin
-./bin/basanos -h
+# Now available system-wide
+basanos -h
+```
+
+By default, binaries install to `/usr/local/bin` (may require `sudo`). To install elsewhere:
+
+```bash
+# User-local install (no sudo needed)
+make install PREFIX=~/.local
+
+# Custom location
+make install PREFIX=/opt/basanos
 ```
 
 ## Quick Start
@@ -336,6 +346,14 @@ make test
 
 # Generate event schema
 make schema
+
+# Install to system (default: /usr/local/bin)
+make install
+make install PREFIX=~/.local
+
+# Uninstall
+make uninstall
+make uninstall PREFIX=~/.local
 
 # Clean build artifacts
 make clean

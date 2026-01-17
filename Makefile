@@ -1,6 +1,8 @@
-.PHONY: build clean test schema
+.PHONY: build clean test schema install uninstall
 
 BIN_DIR := bin
+PREFIX := /usr/local
+INSTALL_DIR := $(PREFIX)/bin
 BINARIES := basanos assert_equals assert_contains assert_matches assert_gt assert_gte assert_lt assert_lte
 
 build: $(addprefix $(BIN_DIR)/,$(BINARIES))
@@ -22,3 +24,17 @@ test:
 schema:
 	@mkdir -p schema
 	go run ./cmd/gen-schema > schema/events.json
+
+install: build
+	@mkdir -p $(INSTALL_DIR)
+	@for bin in $(BINARIES); do \
+		cp $(BIN_DIR)/$$bin $(INSTALL_DIR)/$$bin; \
+		chmod 755 $(INSTALL_DIR)/$$bin; \
+	done
+	@echo "Installed to $(INSTALL_DIR)"
+
+uninstall:
+	@for bin in $(BINARIES); do \
+		rm -f $(INSTALL_DIR)/$$bin; \
+	done
+	@echo "Uninstalled from $(INSTALL_DIR)"
