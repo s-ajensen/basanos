@@ -64,7 +64,7 @@ func Run(opts RunOptions) RunResult {
 	}
 	specRunner := runner.NewRunner(opts.Executor, sinks...)
 	specRunner.Filter = opts.Config.Filter
-	absSpecRootPath, err := opts.FileSystem.Abs(specTree.Path)
+	absSpecRootPath, err := opts.FileSystem.Abs(opts.Config.SpecDir)
 	if err != nil {
 		return RunResult{Error: err}
 	}

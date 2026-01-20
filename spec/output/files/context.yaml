@@ -29,7 +29,7 @@ scenarios:
     run:
       command: |
         ${BASANOS_BIN} -s ${SPEC_ROOT}/fixtures/minimal -o files:${TEST_RUNS}
-        cat ${TEST_RUNS}/*/spec/fixtures/minimal/simple_pass/_run/stdout
+        cat ${TEST_RUNS}/*/minimal/simple_pass/_run/stdout
       timeout: 30s
     assertions:
       - command: assert_contains "hello" ${RUN_OUTPUT}/stdout
@@ -40,7 +40,7 @@ scenarios:
     run:
       command: |
         ${BASANOS_BIN} -s ${SPEC_ROOT}/fixtures/minimal -o files:${TEST_RUNS}
-        cat ${TEST_RUNS}/*/spec/fixtures/minimal/simple_pass/_run/exit_code
+        cat ${TEST_RUNS}/*/minimal/simple_pass/_run/exit_code
       timeout: 30s
     assertions:
       - command: assert_equals "0" ${RUN_OUTPUT}/stdout
@@ -51,7 +51,7 @@ scenarios:
     run:
       command: |
         ${BASANOS_BIN} -s ${SPEC_ROOT}/fixtures/stderr_test -o files:${TEST_RUNS}
-        cat ${TEST_RUNS}/*/spec/fixtures/stderr_test/outputs_stderr/_run/stderr
+        cat ${TEST_RUNS}/*/stderr_test/outputs_stderr/_run/stderr
       timeout: 30s
     assertions:
       - command: assert_contains "ERROR_MESSAGE" ${RUN_OUTPUT}/stdout
@@ -62,7 +62,7 @@ scenarios:
     run:
       command: |
         ${BASANOS_BIN} -s ${SPEC_ROOT}/fixtures/lifecycle_order -o files:${TEST_RUNS}
-        cat ${TEST_RUNS}/*/spec/fixtures/lifecycle_order/_before/stdout
+        cat ${TEST_RUNS}/*/lifecycle_order/_before/stdout
       timeout: 30s
     assertions:
       - command: assert_contains "context_before" ${RUN_OUTPUT}/stdout

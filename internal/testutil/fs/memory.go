@@ -86,6 +86,9 @@ func (m *MemoryFS) Stat(path string) (os.FileInfo, error) {
 }
 
 func (m *MemoryFS) Abs(path string) (string, error) {
+	if path[0] == '/' {
+		return path, nil
+	}
 	return "/" + path, nil
 }
 

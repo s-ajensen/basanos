@@ -37,16 +37,30 @@ func TestLoadSpecTree(t *testing.T) {
 
 func TestLoadSpecTree_TracksPath(t *testing.T) {
 	mfs := memfs.NewMemoryFS()
-	mfs.AddDir("/spec")
-	mfs.AddDir("/spec/child")
-	mfs.AddFile("/spec/context.yaml", []byte(`name: "Root"`))
-	mfs.AddFile("/spec/child/context.yaml", []byte(`name: "Child"`))
+	mfs.AddDir("spec")
+	mfs.AddDir("spec/child")
+	mfs.AddFile("spec/context.yaml", []byte(`name: "Root"`))
+	mfs.AddFile("spec/child/context.yaml", []byte(`name: "Child"`))
 
-	tree, err := LoadSpecTree(mfs, "/spec")
+	tree, err := LoadSpecTree(mfs, "spec")
 
 	require.NoError(t, err)
-	assert.Equal(t, "/spec", tree.Path)
-	assert.Equal(t, "/spec/child", tree.Children[0].Path)
+	assert.Equal(t, "spec", tree.Path)
+	assert.Equal(t, "spec/child", tree.Children[0].Path)
+}
+
+func TestLoadSpecTree_TracksOnlySpecPath(t *testing.T) {
+	mfs := memfs.NewMemoryFS()
+	mfs.AddDir("other/spec")
+	mfs.AddDir("other/spec/child")
+	mfs.AddFile("other/spec/context.yaml", []byte(`name: "Root"`))
+	mfs.AddFile("other/spec/child/context.yaml", []byte(`name: "Child"`))
+
+	tree, err := LoadSpecTree(mfs, "other/spec")
+
+	require.NoError(t, err)
+	assert.Equal(t, "spec", tree.Path)
+	assert.Equal(t, "spec/child", tree.Children[0].Path)
 }
 
 func TestLoadContext_ReturnsErrorForInvalidSpec(t *testing.T) {

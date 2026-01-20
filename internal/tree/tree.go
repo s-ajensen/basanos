@@ -31,15 +31,15 @@ func LoadContext(filesystem fs.FileSystem, dirPath string) (*spec.Context, error
 	return ctx, nil
 }
 
-func LoadSpecTree(filesystem fs.FileSystem, rootPath string) (*SpecTree, error) {
-	ctx, err := LoadContext(filesystem, rootPath)
+func LoadSpecTreeRecursive(filesystem fs.FileSystem, rootFilePath string, rootSpecPath string) (*SpecTree, error) {
+	ctx, err := LoadContext(filesystem, rootFilePath)
 	if err != nil {
 		return nil, err
 	}
 
-	tree := &SpecTree{Path: rootPath, Context: ctx}
+	tree := &SpecTree{Path: rootSpecPath, Context: ctx}
 
-	entries, err := filesystem.ReadDir(rootPath)
+	entries, err := filesystem.ReadDir(rootFilePath)
 	if err != nil {
 		return nil, err
 	}
@@ -48,12 +48,13 @@ func LoadSpecTree(filesystem fs.FileSystem, rootPath string) (*SpecTree, error) 
 		if !entry.IsDir() {
 			continue
 		}
-		childPath := filepath.Join(rootPath, entry.Name())
-		contextFile := filepath.Join(childPath, "context.yaml")
+		childFilePath := filepath.Join(rootFilePath, entry.Name())
+		contextFile := filepath.Join(childFilePath, "context.yaml")
 		if _, err := filesystem.Stat(contextFile); err != nil {
 			continue
 		}
-		child, err := LoadSpecTree(filesystem, childPath)
+		childSpecPath := filepath.Join(rootSpecPath, entry.Name())
+		child, err := LoadSpecTreeRecursive(filesystem, childFilePath, childSpecPath)
 		if err != nil {
 			return nil, err
 		}
@@ -61,4 +62,8 @@ func LoadSpecTree(filesystem fs.FileSystem, rootPath string) (*SpecTree, error) 
 	}
 
 	return tree, nil
+}
+
+func LoadSpecTree(filesystem fs.FileSystem, rootPath string) (*SpecTree, error) {
+	return LoadSpecTreeRecursive(filesystem, rootPath, filepath.Base(rootPath))
 }

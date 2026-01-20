@@ -33,7 +33,7 @@ scenarios:
   - id: filter_scenarios
     name: "Filter flag runs only matching scenarios"
     run:
-      command: ${BASANOS_BIN} -s ${SPEC_ROOT}/fixtures/filter_test -f "*/*/*/alpha_*" -o json 2>&1
+      command: ${BASANOS_BIN} -s ${SPEC_ROOT}/fixtures/filter_test -f "*/alpha_*" -o json 2>&1
       timeout: 30s
     assertions:
       - command: assert_contains "alpha_one" ${RUN_OUTPUT}/stdout
