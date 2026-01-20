@@ -85,6 +85,10 @@ func (m *MemoryFS) Stat(path string) (os.FileInfo, error) {
 	return nil, os.ErrNotExist
 }
 
+func (m *MemoryFS) Abs(path string) (string, error) {
+	return "/" + path, nil
+}
+
 type memDirEntry struct {
 	name  string
 	isDir bool

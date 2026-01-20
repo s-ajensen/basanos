@@ -1,11 +1,15 @@
 package fs
 
-import "os"
+import (
+	"os"
+	"path/filepath"
+)
 
 type FileSystem interface {
 	ReadFile(path string) ([]byte, error)
 	ReadDir(path string) ([]os.DirEntry, error)
 	Stat(path string) (os.FileInfo, error)
+	Abs(path string) (string, error)
 }
 
 type OSFileSystem struct{}
@@ -20,4 +24,8 @@ func (OSFileSystem) ReadDir(path string) ([]os.DirEntry, error) {
 
 func (OSFileSystem) Stat(path string) (os.FileInfo, error) {
 	return os.Stat(path)
+}
+
+func (OSFileSystem) Abs(path string) (string, error) {
+	return filepath.Abs(path)
 }
