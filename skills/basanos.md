@@ -136,8 +136,8 @@ For a leaf scenario, hooks execute in this order:
 |------|------------|--------------|
 | `before` | Contexts, groups, leaves | Once when entering this node |
 | `after` | Contexts, groups, leaves | Once when exiting this node |
-| `before_each` | Contexts, groups only | Before each descendant leaf |
-| `after_each` | Contexts, groups only | After each descendant leaf |
+| `before_each` | Contexts, groups, descendants | Before each descendant leaf |
+| `after_each` | Contexts, groups, descendants | After each descendant leaf |
 
 ## Variables
 
