@@ -32,6 +32,14 @@ scenarios:
       - command: assert_contains "spec_root_test" ${RUN_OUTPUT}/stdout
       - command: assert_equals 0 ${RUN_OUTPUT}/exit_code
 
+  - id: spec_root_absolute_path
+    name: "SPEC_ROOT variable is absolute path"
+    run:
+      command: ${BASANOS_BIN} -s ${SPEC_ROOT}/fixtures/spec_root_test -o json 2>&1
+      timeout: 30s
+    assertions:
+      - command: assert_contains "spec/fixtures/spec_root_test" ${RUN_OUTPUT}/stdout
+
   - id: context_output_available
     name: "CONTEXT_OUTPUT variable is available"
     run:

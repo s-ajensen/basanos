@@ -175,6 +175,32 @@ scenarios:
 	assert.Equal(t, "echo hello", fakeExec.Commands[0].Command)
 }
 
+func TestRun_SubstitutesAbsoluteSpecRoot(t *testing.T) {
+	memFS := memfs.NewMemoryFS()
+	memFS.AddDir("spec")
+	memFS.AddFile("spec/context.yaml", []byte(`name: "Test"
+scenarios:
+  - id: test
+    name: "Test scenario"
+    run:
+      command: "echo ${SPEC_ROOT}"
+      timeout: "10s"
+`))
+
+	fakeExec := &fakeexec.FakeExecutor{}
+	opts := RunOptions{
+		Config:     &Config{SpecDir: "spec", Outputs: []string{"files"}},
+		FileSystem: memFS,
+		Executor:   fakeExec,
+	}
+
+	result := Run(opts)
+
+	require.NoError(t, result.Error)
+	require.Len(t, fakeExec.Commands, 1)
+	assert.Equal(t, "echo /spec", fakeExec.Commands[0].Command)
+}
+
 func TestRun_UsesJsonSink(t *testing.T) {
 	memFS := memfs.NewMemoryFS()
 	memFS.AddDir("spec")

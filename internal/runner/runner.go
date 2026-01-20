@@ -305,11 +305,11 @@ func initialContext(specRoot string, outputRoot string) runContext {
 	}
 }
 
-func (runner *Runner) Run(specTree *tree.SpecTree) error {
-	return runner.runTree(specTree, initialContext(specTree.Path, ""), nil)
+func (runner *Runner) Run(specTree *tree.SpecTree, absSpecRootPath string) error {
+	return runner.runTree(specTree, initialContext(absSpecRootPath, ""), nil)
 }
 
-func (runner *Runner) RunWithID(runID string, specTree *tree.SpecTree) error {
+func (runner *Runner) RunWithID(runID string, specTree *tree.SpecTree, absSpecRootPath string) error {
 	runner.runID = runID
 	runner.emit(eventpkg.NewRunStartEvent(runID, time.Now()))
 	runner.passed = 0
@@ -317,7 +317,7 @@ func (runner *Runner) RunWithID(runID string, specTree *tree.SpecTree) error {
 	runner.aborted = false
 
 	outputRoot := "runs/" + runID
-	err := runner.runTree(specTree, initialContext(specTree.Path, outputRoot), nil)
+	err := runner.runTree(specTree, initialContext(absSpecRootPath, outputRoot), nil)
 
 	status := "pass"
 	if runner.failed > 0 {

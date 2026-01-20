@@ -64,7 +64,11 @@ func Run(opts RunOptions) RunResult {
 	}
 	specRunner := runner.NewRunner(opts.Executor, sinks...)
 	specRunner.Filter = opts.Config.Filter
-	err = specRunner.RunWithID(runID, specTree)
+	absSpecRootPath, err := opts.FileSystem.Abs(specTree.Path)
+	if err != nil {
+		return RunResult{Error: err}
+	}
+	err = specRunner.RunWithID(runID, specTree, absSpecRootPath)
 	return RunResult{
 		Success: specRunner.Failed() == 0 && err == nil,
 		Passed:  specRunner.Passed(),

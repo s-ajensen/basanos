@@ -131,12 +131,20 @@ func withScenarioCommand(t *tree.SpecTree, cmd, timeout string) *tree.SpecTree {
 	return t
 }
 
+func absSpecPath(specTree *tree.SpecTree) string {
+	return "/" + specTree.Path
+}
+
+// func runWithAbsSpecPath(runner *Runner, specTree *tree.SpecTree) error {
+// 	return runner.Run(specTree, "/"+specTree.Path)
+// }
+
 func runSpec(t *testing.T, specTree *tree.SpecTree) (*fakeexec.FakeExecutor, *SpySink) {
 	executor := &fakeexec.FakeExecutor{}
 	sink := &SpySink{}
 	runner := NewRunner(executor, sink)
 
-	err := runner.Run(specTree)
+	err := runner.Run(specTree, "/"+specTree.Path)
 	require.NoError(t, err)
 
 	return executor, sink
@@ -147,7 +155,7 @@ func runSpecWithOutput(t *testing.T, specTree *tree.SpecTree, stdout, stderr str
 	sink := &SpySink{}
 	runner := NewRunner(executor, sink)
 
-	err := runner.Run(specTree)
+	err := runner.Run(specTree, "/"+specTree.Path)
 	require.NoError(t, err)
 
 	return executor, sink
@@ -503,7 +511,7 @@ func runSpecWithID(t *testing.T, runID string, specTree *tree.SpecTree) (*fakeex
 	sink := &SpySink{}
 	runner := NewRunner(executor, sink)
 
-	err := runner.RunWithID(runID, specTree)
+	err := runner.RunWithID(runID, specTree, absSpecPath(specTree))
 	require.NoError(t, err)
 
 	return executor, sink
@@ -548,7 +556,7 @@ func TestRunner_RunWithID_CountsFailedScenario(t *testing.T) {
 	sink := &SpySink{}
 	runner := NewRunner(executor, sink)
 
-	runner.RunWithID("run-1", specTree)
+	runner.RunWithID("run-1", specTree, absSpecPath(specTree))
 
 	events := findEvents[*event.RunEndEvent](sink.Events)
 	require.Len(t, events, 1)
@@ -562,7 +570,7 @@ func TestRunner_RunWithID_StatusFailWhenScenarioFails(t *testing.T) {
 	sink := &SpySink{}
 	runner := NewRunner(executor, sink)
 
-	runner.RunWithID("run-1", specTree)
+	runner.RunWithID("run-1", specTree, absSpecPath(specTree))
 
 	events := findEvents[*event.RunEndEvent](sink.Events)
 	require.Len(t, events, 1)
@@ -578,7 +586,7 @@ func TestRunner_ScenarioFailsWhenAssertionFails(t *testing.T) {
 	sink := &SpySink{}
 	runner := NewRunner(executor, sink)
 
-	runner.Run(specTree)
+	runner.Run(specTree, absSpecPath(specTree))
 
 	events := findEvents[*event.ScenarioExitEvent](sink.Events)
 	require.Len(t, events, 1)
@@ -594,7 +602,7 @@ func TestRunner_ScenarioPassesWhenAssertionsPassDespiteNonZeroExitCode(t *testin
 	sink := &SpySink{}
 	runner := NewRunner(executor, sink)
 
-	runner.Run(specTree)
+	runner.Run(specTree, absSpecPath(specTree))
 
 	events := findEvents[*event.ScenarioExitEvent](sink.Events)
 	require.Len(t, events, 1)
@@ -654,7 +662,7 @@ func TestRunner_AbortRun_StopsAfterFailure(t *testing.T) {
 	sink := &SpySink{}
 	runner := NewRunner(executor, sink)
 
-	runner.Run(specTree)
+	runner.Run(specTree, absSpecPath(specTree))
 
 	assert.Len(t, executor.Commands, 2)
 }
@@ -669,7 +677,7 @@ func TestRunner_AbortRun_StopsChildContexts(t *testing.T) {
 	sink := &SpySink{}
 	runner := NewRunner(executor, sink)
 
-	runner.Run(specTree)
+	runner.Run(specTree, absSpecPath(specTree))
 
 	assert.Len(t, executor.Commands, 2)
 }
@@ -681,7 +689,7 @@ func TestRunner_SkipChildren_SkipsRemainingScenarios(t *testing.T) {
 	sink := &SpySink{}
 	runner := NewRunner(executor, sink)
 
-	runner.Run(specTree)
+	runner.Run(specTree, absSpecPath(specTree))
 
 	assert.Len(t, executor.Commands, 2)
 }
@@ -700,7 +708,7 @@ func TestRunner_SkipChildren_ContinuesSiblingContexts(t *testing.T) {
 	sink := &SpySink{}
 	runner := NewRunner(executor, sink)
 
-	runner.Run(specTree)
+	runner.Run(specTree, absSpecPath(specTree))
 
 	require.Len(t, executor.Commands, 4)
 	assert.Equal(t, "test_command", executor.Commands[0].Command)
@@ -764,7 +772,7 @@ func TestRunner_SubstitutesSpecRoot(t *testing.T) {
 	executor, _ := runSpec(t, specTree)
 
 	require.Len(t, executor.Commands, 1)
-	assert.Equal(t, "cat spec/fixture.txt", executor.Commands[0].Command)
+	assert.Equal(t, "cat /spec/fixture.txt", executor.Commands[0].Command)
 }
 
 func TestRunner_SubstitutesContextOutput(t *testing.T) {
@@ -794,7 +802,7 @@ func TestRunner_EmitsTimeoutEvent(t *testing.T) {
 	sink := &SpySink{}
 	runner := NewRunner(executor, sink)
 
-	runner.Run(specTree)
+	runner.Run(specTree, absSpecPath(specTree))
 
 	events := findEvents[*event.TimeoutEvent](sink.Events)
 	require.Len(t, events, 1)
@@ -809,7 +817,7 @@ func TestRunner_ScenarioFailsOnTimeout(t *testing.T) {
 	sink := &SpySink{}
 	runner := NewRunner(executor, sink)
 
-	runner.Run(specTree)
+	runner.Run(specTree, absSpecPath(specTree))
 
 	events := findEvents[*event.ScenarioExitEvent](sink.Events)
 	require.Len(t, events, 1)
@@ -825,7 +833,7 @@ func TestRunner_ScenarioFailsOnTimeout_EvenWithZeroExitCode(t *testing.T) {
 	sink := &SpySink{}
 	runner := NewRunner(executor, sink)
 
-	runner.Run(specTree)
+	runner.Run(specTree, absSpecPath(specTree))
 
 	events := findEvents[*event.ScenarioExitEvent](sink.Events)
 	require.Len(t, events, 1)
@@ -838,7 +846,7 @@ func TestRunner_AllEventsIncludeRunID(t *testing.T) {
 	sink := &SpySink{}
 	runner := NewRunner(executor, sink)
 
-	runner.RunWithID("test-run-123", specTree)
+	runner.RunWithID("test-run-123", specTree, absSpecPath(specTree))
 
 	contextEnterEvents := findEvents[*event.ContextEnterEvent](sink.Events)
 	require.Len(t, contextEnterEvents, 1)
@@ -855,6 +863,20 @@ func TestRunner_AllEventsIncludeRunID(t *testing.T) {
 	hookStartEvents := findEvents[*event.HookStartEvent](sink.Events)
 	require.Len(t, hookStartEvents, 1)
 	assert.Equal(t, "test-run-123", hookStartEvents[0].RunID)
+}
+
+func TestRunner_RunIDSubstitutesSpecRoot(t *testing.T) {
+	specTree := newSpecTree("spec")
+	specTree.Context.Scenarios[0].Run.Command = "cat ${SPEC_ROOT}/fixture.txt"
+	executor := &fakeexec.FakeExecutor{Stdout: "output\n"}
+	sink := &SpySink{}
+	runner := NewRunner(executor, sink)
+
+	err := runner.RunWithID("test-run-123", specTree, absSpecPath(specTree))
+	require.NoError(t, err)
+
+	require.Len(t, executor.Commands, 1)
+	assert.Equal(t, "cat /spec/fixture.txt", executor.Commands[0].Command)
 }
 
 func TestRunner_HookNamesArePrefixedWithUnderscore(t *testing.T) {
@@ -883,7 +905,7 @@ func TestRunner_FilterByExactPath(t *testing.T) {
 	runner := NewRunner(fakeExecutor, sink)
 	runner.Filter = "spec/login"
 
-	runner.Run(specTree)
+	runner.Run(specTree, absSpecPath(specTree))
 
 	require.Len(t, fakeExecutor.Commands, 1)
 	assert.Equal(t, "login_cmd", fakeExecutor.Commands[0].Command)
@@ -922,7 +944,7 @@ func TestRunner_FilterByGlobPattern(t *testing.T) {
 	runner := NewRunner(fakeExecutor, sink)
 	runner.Filter = "spec/api/*"
 
-	runner.Run(specTree)
+	runner.Run(specTree, absSpecPath(specTree))
 
 	require.Len(t, fakeExecutor.Commands, 2)
 	assert.Equal(t, "api_login_cmd", fakeExecutor.Commands[0].Command)
@@ -1001,7 +1023,7 @@ func TestRunner_Assertions_UsesProtocolPiping(t *testing.T) {
 	sink := &SpySink{}
 	runner := NewRunner(fakeExecutor, sink)
 
-	runner.RunWithID("test-run", specTree)
+	runner.RunWithID("test-run", specTree, absSpecPath(specTree))
 
 	require.GreaterOrEqual(t, len(fakeExecutor.Commands), 2)
 	assertionCmd := fakeExecutor.Commands[1]
