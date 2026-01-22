@@ -389,7 +389,7 @@ scenarios:
 `))
 
 	fakeExec := &fakeexec.FakeExecutor{
-		ExitCodes: map[string]int{"assert_equals": 1},
+		ExitCodes: map[string]int{"assert_equals expected actual": 1},
 	}
 	opts := RunOptions{
 		Config:     &Config{SpecDir: "spec", Outputs: []string{"files"}},

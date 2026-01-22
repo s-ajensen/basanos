@@ -135,10 +135,6 @@ func absSpecPath(specTree *tree.SpecTree) string {
 	return "/" + specTree.Path
 }
 
-// func runWithAbsSpecPath(runner *Runner, specTree *tree.SpecTree) error {
-// 	return runner.Run(specTree, "/"+specTree.Path)
-// }
-
 func runSpec(t *testing.T, specTree *tree.SpecTree) (*fakeexec.FakeExecutor, *SpySink) {
 	executor := &fakeexec.FakeExecutor{}
 	sink := &SpySink{}
@@ -463,8 +459,8 @@ func TestRunner_Assertions_ExecutesAssertionCommands(t *testing.T) {
 
 	require.Len(t, executor.Commands, 3)
 	assert.Equal(t, "test_command", executor.Commands[0].Command)
-	assert.Equal(t, "assert_equals", executor.Commands[1].Command)
-	assert.Equal(t, "assert_contains", executor.Commands[2].Command)
+	assert.Equal(t, "assert_equals 0 exit_code", executor.Commands[1].Command)
+	assert.Equal(t, "assert_contains expected.txt stdout", executor.Commands[2].Command)
 }
 
 func TestRunner_EmitsContextEnterEvent(t *testing.T) {
@@ -552,7 +548,9 @@ func TestRunner_RunWithID_CountsMultiplePassingScenarios(t *testing.T) {
 
 func TestRunner_RunWithID_CountsFailedScenario(t *testing.T) {
 	specTree := withFailingAssertion(newSpecTree("basic"), 0)
-	executor := &fakeexec.FakeExecutor{ExitCodes: map[string]int{"assert_equals": 1}}
+	executor := &fakeexec.FakeExecutor{
+		ExitCodes: map[string]int{"assert_equals expected actual": 1},
+	}
 	sink := &SpySink{}
 	runner := NewRunner(executor, sink)
 
@@ -566,7 +564,9 @@ func TestRunner_RunWithID_CountsFailedScenario(t *testing.T) {
 
 func TestRunner_RunWithID_StatusFailWhenScenarioFails(t *testing.T) {
 	specTree := withFailingAssertion(newSpecTree("basic"), 0)
-	executor := &fakeexec.FakeExecutor{ExitCodes: map[string]int{"assert_equals": 1}}
+	executor := &fakeexec.FakeExecutor{
+		ExitCodes: map[string]int{"assert_equals expected actual": 1},
+	}
 	sink := &SpySink{}
 	runner := NewRunner(executor, sink)
 
@@ -580,8 +580,8 @@ func TestRunner_RunWithID_StatusFailWhenScenarioFails(t *testing.T) {
 func TestRunner_ScenarioFailsWhenAssertionFails(t *testing.T) {
 	specTree := withAssertions(newSpecTree("basic"), "assert_equals 0 exit_code")
 	executor := &fakeexec.FakeExecutor{ExitCodes: map[string]int{
-		"test_command":  0,
-		"assert_equals": 1,
+		"test_command":              0,
+		"assert_equals 0 exit_code": 1,
 	}}
 	sink := &SpySink{}
 	runner := NewRunner(executor, sink)
@@ -658,7 +658,9 @@ func TestRunner_AncestorBeforeEach_AllRun(t *testing.T) {
 func TestRunner_AbortRun_StopsAfterFailure(t *testing.T) {
 	specTree := withFailingAssertion(withTwoScenarios(newSpecTree("basic")), 0)
 	specTree.Context.OnFailure = "abort_run"
-	executor := &fakeexec.FakeExecutor{ExitCodes: map[string]int{"assert_equals": 1}}
+	executor := &fakeexec.FakeExecutor{
+		ExitCodes: map[string]int{"assert_equals expected actual": 1},
+	}
 	sink := &SpySink{}
 	runner := NewRunner(executor, sink)
 
@@ -673,7 +675,9 @@ func TestRunner_AbortRun_StopsChildContexts(t *testing.T) {
 	specTree.Context.Scenarios[0].Assertions = []spec.Assertion{
 		{Command: "assert_equals expected actual", Timeout: "1s"},
 	}
-	executor := &fakeexec.FakeExecutor{ExitCodes: map[string]int{"assert_equals": 1}}
+	executor := &fakeexec.FakeExecutor{
+		ExitCodes: map[string]int{"assert_equals expected actual": 1},
+	}
 	sink := &SpySink{}
 	runner := NewRunner(executor, sink)
 
@@ -685,7 +689,9 @@ func TestRunner_AbortRun_StopsChildContexts(t *testing.T) {
 func TestRunner_SkipChildren_SkipsRemainingScenarios(t *testing.T) {
 	specTree := withFailingAssertion(withTwoScenarios(newSpecTree("basic")), 0)
 	specTree.Context.OnFailure = "skip_children"
-	executor := &fakeexec.FakeExecutor{ExitCodes: map[string]int{"assert_equals": 1}}
+	executor := &fakeexec.FakeExecutor{
+		ExitCodes: map[string]int{"assert_equals expected actual": 1},
+	}
 	sink := &SpySink{}
 	runner := NewRunner(executor, sink)
 
@@ -713,7 +719,7 @@ func TestRunner_SkipChildren_ContinuesSiblingContexts(t *testing.T) {
 	require.Len(t, executor.Commands, 4)
 	assert.Equal(t, "test_command", executor.Commands[0].Command)
 	assert.Equal(t, "fail_cmd", executor.Commands[1].Command)
-	assert.Equal(t, "assert_equals", executor.Commands[2].Command)
+	assert.Equal(t, "assert_equals expected actual", executor.Commands[2].Command)
 	assert.Equal(t, "sibling_cmd", executor.Commands[3].Command)
 }
 
@@ -1029,4 +1035,21 @@ func TestRunner_Assertions_UsesProtocolPiping(t *testing.T) {
 	assertionCmd := fakeExecutor.Commands[1]
 	assert.Equal(t, "assert_equals", assertionCmd.Command)
 	assert.Contains(t, fakeExecutor.StdinReceived, "basanos:1\n")
+}
+
+func TestRunner_Assertions_NoProtocolPipingIfNoResources(t *testing.T) {
+	specTree := newSpecTree("basic")
+	specTree.Context.Scenarios[0].Assertions = []spec.Assertion{
+		{Command: "assert_equals 0 1", Timeout: "1s"},
+	}
+	fakeExecutor := &fakeexec.FakeExecutor{Stdout: "hello\n", Stderr: "warning\n"}
+	sink := &SpySink{}
+	runner := NewRunner(fakeExecutor, sink)
+
+	runner.RunWithID("test-run", specTree, absSpecPath(specTree))
+
+	require.GreaterOrEqual(t, len(fakeExecutor.Commands), 2)
+	assertionCmd := fakeExecutor.Commands[1]
+	assert.Equal(t, "assert_equals 0 1", assertionCmd.Command)
+	assert.Equal(t, "", fakeExecutor.StdinReceived)
 }

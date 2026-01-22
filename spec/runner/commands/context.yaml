@@ -1,0 +1,11 @@
+name: "Commands"
+description: "Tests for running commands"
+
+scenarios:
+  - id: non-assertion-command
+    name: "Test passes if non-assertion command exits with code 0"
+    run:
+      command: ${BASANOS_BIN} -s ${SPEC_ROOT}/fixtures/non_assertion_command -o json 2>&1
+      timeout: 30s
+    assertions:
+      - command: assert_equals 0 ${RUN_OUTPUT}/exit_code

@@ -1,0 +1,14 @@
+name: "Non assertion command"
+description: "Command that isn't assert_*"
+
+after:
+  run: rm /tmp/bug.txt
+
+scenarios:
+  - id: non-assertion-command
+    name: "Using non-assertion program in command"
+    run:
+      command: touch /tmp/bug.txt
+      timeout: 30s
+    assertions:
+      - command: test -f /tmp/bug.txt
