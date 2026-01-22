@@ -31,16 +31,40 @@ func resolveAssertionArgs(command string, captured CapturedOutput, env map[strin
 	return first, second, nil
 }
 
+func runOutputVar() string {
+	return "RUN_OUTPUT"
+}
+
+func runOutput(env map[string]string) string {
+	return env[runOutputVar()]
+}
+
+func stdoutPath(runOutput string) string {
+	return runOutput + "/stdout"
+}
+
+func stderrPath(runOutput string) string {
+	return runOutput + "/stderr"
+}
+
+func exitCodePath(runOutput string) string {
+	return runOutput + "/exit_code"
+}
+
+func usesResources(unexpanded_command string, env map[string]string) bool {
+	runOutput := fmt.Sprintf("${%s}", runOutputVar())
+	return strings.Contains(unexpanded_command, exitCodePath(runOutput)) ||
+		strings.Contains(unexpanded_command, stdoutPath(runOutput)) ||
+		strings.Contains(unexpanded_command, stderrPath(runOutput))
+}
+
 func resolveArg(arg string, captured CapturedOutput, env map[string]string) string {
-	runOutput := env["RUN_OUTPUT"]
-	if runOutput == "" {
-		return resolveFileOrLiteral(arg)
-	}
+	runOutput := runOutput(env)
 
 	capturedValues := map[string]string{
-		runOutput + "/stdout":    captured.Stdout,
-		runOutput + "/stderr":    captured.Stderr,
-		runOutput + "/exit_code": strconv.Itoa(captured.ExitCode),
+		stdoutPath(runOutput):   captured.Stdout,
+		stderrPath(runOutput):   captured.Stderr,
+		exitCodePath(runOutput): strconv.Itoa(captured.ExitCode),
 	}
 
 	if value, ok := capturedValues[arg]; ok {

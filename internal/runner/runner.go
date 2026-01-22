@@ -114,28 +114,36 @@ func extractExecutable(command string) string {
 	return parts[0]
 }
 
+func (runner *Runner) executeAssertion(assertion spec.Assertion, env map[string]string, captured CapturedOutput) (stdout string, stderr string, exitCode int, err error) {
+	if usesResources(assertion.Command, env) {
+		executable := extractExecutable(assertion.Command)
+		first, second, _ := resolveAssertionArgs(assertion.Command, captured, env)
+		protocol := assert.BuildProtocol(first, second)
+		return runner.executor.ExecuteWithStdin(executable, assertion.Timeout, env, protocol)
+	} else {
+		return runner.executor.Execute(assertion.Command, assertion.Timeout, env)
+	}
+}
+
+func (runner *Runner) runAssertion(path string, assertion spec.Assertion, env map[string]string, captured CapturedOutput, index int) bool {
+	runner.emit(eventpkg.NewAssertionStartEvent(runner.runID, path, index, assertion.Command))
+
+	stdout, stderr, exitCode, _ := runner.executeAssertion(assertion, env, captured)
+
+	runner.emitOutput("stdout", stdout)
+	runner.emitOutput("stderr", stderr)
+	runner.emit(eventpkg.NewAssertionEndEvent(runner.runID, path, index, exitCode))
+
+	if exitCode != 0 {
+		return false
+	}
+	return true
+}
+
 func (runner *Runner) runAssertions(path string, assertions []spec.Assertion, env map[string]string, captured CapturedOutput) bool {
 	allPassed := true
 	for index, assertion := range assertions {
-		executable := extractExecutable(assertion.Command)
-
-		first, second, err := resolveAssertionArgs(assertion.Command, captured, env)
-		if err != nil {
-			runner.emit(eventpkg.NewAssertionStartEvent(runner.runID, path, index, assertion.Command))
-			runner.emit(eventpkg.NewAssertionEndEvent(runner.runID, path, index, 1))
-			allPassed = false
-			continue
-		}
-
-		protocol := assert.BuildProtocol(first, second)
-
-		runner.emit(eventpkg.NewAssertionStartEvent(runner.runID, path, index, assertion.Command))
-		stdout, stderr, exitCode, _ := runner.executor.ExecuteWithStdin(executable, assertion.Timeout, env, protocol)
-		runner.emitOutput("stdout", stdout)
-		runner.emitOutput("stderr", stderr)
-		runner.emit(eventpkg.NewAssertionEndEvent(runner.runID, path, index, exitCode))
-
-		if exitCode != 0 {
+		if !runner.runAssertion(path, assertion, env, captured, index) {
 			allPassed = false
 		}
 	}
