@@ -114,7 +114,7 @@ func extractExecutable(command string) string {
 	return parts[0]
 }
 
-func (runner *Runner) runAssertion(path string, assertion spec.Assertion, env map[string]string, captured CapturedOutput, index int) bool {
+func (runner *Runner) runAssertionWithPipe(path string, assertion spec.Assertion, env map[string]string, captured CapturedOutput, index int) bool {
 	executable := extractExecutable(assertion.Command)
 
 	first, second, err := resolveAssertionArgs(assertion.Command, captured, env)
@@ -141,7 +141,7 @@ func (runner *Runner) runAssertion(path string, assertion spec.Assertion, env ma
 func (runner *Runner) runAssertions(path string, assertions []spec.Assertion, env map[string]string, captured CapturedOutput) bool {
 	allPassed := true
 	for index, assertion := range assertions {
-		if !runner.runAssertion(path, assertion, env, captured, index) {
+		if !runner.runAssertionWithPipe(path, assertion, env, captured, index) {
 			allPassed = false
 		}
 	}
